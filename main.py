@@ -5,7 +5,12 @@
 主程序入口文件
 
 作者: AI Assistant
-版本: 1.0.0
+版本: 1.0.1
+更新内容:
+- 修复了代码类型注解和错误处理
+- 优化了AI模块的安全性检查
+- 改进了设置窗口大小显示
+- 增强了程序稳定性和代码质量
 """
 
 import customtkinter as ctk
@@ -16,11 +21,13 @@ import json
 import os
 from datetime import datetime
 import random
+from typing import Any
 try:
     from zhipuai import ZhipuAI
-    AI_AVAILABLE = True
+    AI_AVAILABLE: bool = True
 except ImportError:
-    AI_AVAILABLE = False
+    AI_AVAILABLE: bool = False
+    ZhipuAI = None  # 类型占位符
 
 # 设置CustomTkinter主题
 ctk.set_appearance_mode("dark")  # 可选: "light", "dark", "system"
@@ -31,7 +38,7 @@ class TypingSpeedTest:
     def __init__(self):
         # 初始化主窗口
         self.root = ctk.CTk()
-        self.root.title("打字速度检测器 v1.0")
+        self.root.title("打字速度检测器 v1.0.1")
         self.root.geometry("1000x700")
         self.root.resizable(True, True)
         
@@ -309,13 +316,13 @@ class TypingSpeedTest:
         self.update_text_display()
         self.update_stats_display()
         
-    def on_key_press(self, event):
+    def on_key_press(self, event) -> None:
         """处理按键事件"""
         # 只有在输入可见字符时才开始测试
         if not self.is_testing and event.char and event.char.isprintable():
             self.start_test()
-            
-    def on_text_change(self, event):
+
+    def on_text_change(self, event) -> None:
         """处理文本变化"""
         current_input = self.input_textbox.get("1.0", tk.END).rstrip('\n')
 
@@ -481,15 +488,15 @@ class TypingSpeedTest:
                     config = json.load(f)
                     api_key = config.get('zhipu_api_key', '')
                     self.ai_style = config.get('ai_style', '随机')
-                    if api_key and AI_AVAILABLE:
+                    if api_key and AI_AVAILABLE and ZhipuAI is not None:
                         try:
                             self.ai_client = ZhipuAI(api_key=api_key)
-                        except NameError:
+                        except Exception:
                             self.ai_client = None
         except:
             pass
 
-    def save_config(self, api_key, ai_style=None):
+    def save_config(self, api_key: str, ai_style: str | None = None) -> None:
         """保存配置"""
         try:
             if ai_style is not None:
@@ -503,11 +510,11 @@ class TypingSpeedTest:
                 json.dump(config, f, ensure_ascii=False, indent=2)
 
             # 初始化AI客户端
-            if api_key and AI_AVAILABLE:
+            if api_key and AI_AVAILABLE and ZhipuAI is not None:
                 try:
                     self.ai_client = ZhipuAI(api_key=api_key)
                     self.ai_text_button.configure(state="normal")
-                except NameError:
+                except Exception:
                     self.ai_client = None
                     self.ai_text_button.configure(state="disabled")
             else:
@@ -576,7 +583,7 @@ class TypingSpeedTest:
         recent_history = self.history[-20:]
         recent_history.reverse()
         
-        for i, record in enumerate(recent_history):
+        for _, record in enumerate(recent_history):
             # 获取语言信息，兼容旧记录
             language = record.get('language', 'english')
             lang_text = "中文" if language == "chinese" else "英文"
@@ -600,8 +607,8 @@ class TypingSpeedTest:
         main_y = self.root.winfo_y()
         main_width = self.root.winfo_width()
 
-        settings_width = 520
-        settings_height = 400
+        settings_width = 550
+        settings_height = 500
 
         # 设置窗口位置在主窗口右侧
         x = main_x + main_width + 20
@@ -617,7 +624,7 @@ class TypingSpeedTest:
         settings_window.geometry(f"{settings_width}x{settings_height}+{x}+{y}")
         settings_window.transient(self.root)
         settings_window.grab_set()
-        settings_window.resizable(False, False)
+        settings_window.resizable(True, True)  # 允许用户调整大小
 
         # 标题
         title_label = ctk.CTkLabel(
@@ -704,7 +711,7 @@ class TypingSpeedTest:
                 return
 
             try:
-                if not AI_AVAILABLE:
+                if not AI_AVAILABLE or ZhipuAI is None:
                     messagebox.showerror("错误", "AI功能不可用，请安装zhipuai库")
                     return
                 test_client = ZhipuAI(api_key=api_key)
@@ -796,7 +803,7 @@ class TypingSpeedTest:
             self.ai_text_button.configure(text="🤖 AI文本", state="normal")
             messagebox.showerror("错误", f"生成文本失败: {e}")
 
-    def show_test_report(self, result, elapsed_time):
+    def show_test_report(self, result: dict[str, Any], elapsed_time: float) -> None:
         """显示专业测试报告"""
         report_window = ctk.CTkToplevel(self.root)
         report_window.title("📊 测试报告")
@@ -939,7 +946,7 @@ class TypingSpeedTest:
         )
         close_button.pack(side="right", padx=10, pady=10)
 
-    def get_wpm_level(self, wpm, language):
+    def get_wpm_level(self, wpm: int, language: str) -> str:
         """获取WPM等级评价"""
         if language == "chinese":
             if wpm >= 120: return "专家级"
@@ -954,7 +961,7 @@ class TypingSpeedTest:
             elif wpm >= 20: return "一般"
             else: return "初学者"
 
-    def get_accuracy_level(self, accuracy):
+    def get_accuracy_level(self, accuracy: float) -> str:
         """获取准确率等级评价"""
         if accuracy >= 98: return "完美"
         elif accuracy >= 95: return "优秀"
