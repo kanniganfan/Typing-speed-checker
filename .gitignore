@@ -67,6 +67,11 @@ config.json
 typing_history.json
 *.log
 
+# Build outputs
+打字速度检测器_便携版/
+dist/
+build/
+
 # Temporary files
 *.tmp
 *.temp
