@@ -66,6 +66,7 @@ Thumbs.db
 config.json
 typing_history.json
 *.log
+.promptx/
 
 # Build outputs
 打字速度检测器_便携版/
